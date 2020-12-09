@@ -16,14 +16,9 @@ class CroppedImage:
         self.bottom_index = bottom
         self.centroid_index = ((top + bottom) / 2, (left + right) / 2)
 
-
-def _generate_cropping_coordinates(img, frame_shift_vertical, frame_shift_horizontal, v_index, h_index):
-    i, j = v_index, h_index
-    left = j * frame_shift_horizontal
-    top = i * frame_shift_vertical
-    right = (j + 1) * frame_shift_horizontal
-    bottom = (i + 1) * frame_shift_vertical
-    return left, top, right, bottom
+    def bbox_str(self):
+        return 'left: ' + str(self.left_index) + '\ntop: ' + str(self.top_index) + \
+            '\nright: ' + str(self.right_index) + '\nbottom: ' + str(self.bottom_index)
 
 
 def generate_sub_images(img, required_shape):
@@ -42,7 +37,11 @@ def generate_sub_images(img, required_shape):
     sub_images = [[None for i in range(number_horizontal_chunks_initial)] for j in range(number_vertical_chunks_initial)]
     for i in range(number_vertical_chunks_initial):
         for j in range(number_horizontal_chunks_initial):
-            bbox_coordinates = _generate_cropping_coordinates(img, frame_shift_vertical, frame_shift_horizontal, i, j)
+            left = j * frame_shift_horizontal
+            top = i * frame_shift_vertical
+            right = left + required_width
+            bottom = top + required_height
+            bbox_coordinates = (left, top, right, bottom)
             cropped = CroppedImage(img_array, np.array(img.crop(bbox_coordinates)), *bbox_coordinates)
             sub_images[i][j] = cropped
     return sub_images
@@ -63,3 +62,15 @@ if __name__ == '__main__':
     # uncomment the following two lines to see that the cropping checks out:
     #img.show()
     #cropped_to_show.show()
+
+    
+    # now test something a bit more difficult – 64x64 image with 24x24 constraint
+    img_64_array = np.zeros((64, 64))
+    img_64 = Image.fromarray(img_64_array)
+    sub_images_64 = generate_sub_images(img_64, (24, 24))
+    print('shape of sub_images_64 list: ' + str(np.array(sub_images_64).shape) + '\n')
+    sub_images_64_centroids = [x.centroid_index for row in sub_images_64 for x in row]
+    print('sub_images_64 centroids (vertical-axis, horizontal-axis): ' + str(sub_images_64_centroids) + '\n')
+    print('and the shape of a sub_image: ' + str(sub_images_64[0][0].cropped_image_array.shape))
+    print('bbox: \n' + sub_images_64[0][0].bbox_str())
+    print(sum(len(x) for x in sub_images_64))
